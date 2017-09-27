@@ -19,9 +19,9 @@ char ** mytoc(char *str, char delim){
       vector[position] = (char *) malloc((wordLength + 1));  //allocate n + 1
       for(index = 0; index < wordLength; index++, pStr++){   //going from 0 to the length of the word
 	vector[position][index] = *pStr;                     //store each character into array
-	printf("%c", *pStr);	
+	//printf("%c", *pStr);	
       }
-      printf("\n");
+      //printf("\n");
       vector[position][index] = '\0';                        //add 0 terminator
       position++;
     }

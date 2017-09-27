@@ -18,7 +18,7 @@ int main(int argc, char **argv, char **envp){
   char *cmd;
   char *slash = "/";
   char **vector;
-  int pid;  
+  pid_t pid;  
 
   while(1){
     write(1, "$", 2);
@@ -27,21 +27,12 @@ int main(int argc, char **argv, char **envp){
 	return 0;
     }
     vector = mytoc(str, delim);
-    //    cmd = vector[0];
-    for(int i = 0; envp[i] != (char*)0; i++){
-      char ** tempVector = mytoc(envp[i], '=');
-      if(compareWord(tempVector[0], "PATH") == 1){
-	path = tempVector[1];
-	break;
-      }
-      free(tempVector);
-    }
-    posPath = mytoc(path, ':');
+    cmd = vector[0];
 
-    if(access(vector[0], F_OK) == 0){
-      pid = fork();
+    if(access(cmd, F_OK) == 0){
+      pid = saferFork();
       if(pid == 0){
-	int executed = execve(vector[0], vector, envp);
+	int executed = execve(cmd, vector, envp);
 	if(executed == 0){
 	  return 0;
 	}
@@ -54,11 +45,24 @@ int main(int argc, char **argv, char **envp){
 	return 0;
       }
     }
-    else{
-      while(posPath){
-	realPath = concatenate(*posPath, "/");
-	realPath = concatenate(realPath, cmd);
-        pid = fork();
+
+    for(int i = 0; envp[i] != (char*)0; i++){
+      char ** tempVector = mytoc(envp[i], '=');
+      if(compareWord(tempVector[0], "PATH") == 1){
+	path = tempVector[1];
+	break;
+      }
+      free(tempVector);
+    }
+    posPath = mytoc(path, ':');
+    while(*posPath){
+      realPath = concatenate(*posPath, "/");
+      //      printf("%s",realPath);
+      realPath = concatenate(realPath, cmd);
+      printf("%s",realPath);
+      printf("%d", access(realPath, F_OK));
+      if(access(realPath, F_OK) == 0){
+	pid = saferFork();
 	if(pid == 0){
 	  int executed = execve(realPath, vector, envp);
 	  if(executed == 0){
@@ -69,9 +73,11 @@ int main(int argc, char **argv, char **envp){
 	  }
 	  break;
 	}
-	posPath++;
       }
+      
+      posPath++;
     }
+    
   }
   return 0;
 }
@@ -92,6 +98,13 @@ char *concatenate(char *str, char *pStr){
   strConcat[count] = '\0';
   return strConcat;
   
+}
+
+pid_t saferFork(){
+  fprintf(stderr, "process <%d> calling fork() in 5 seconds...", getpid());
+  sleep(1);
+  fprintf(stderr, "calling fork now!\n");
+  return fork();
 }
 
 int countCharacters(char *str){
