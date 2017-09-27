@@ -34,13 +34,13 @@ char ** mytoc(char *str, char delim){
 // It will compare two words, added so I can exit when typing exit
 int compareWord(char *str, char *pStr){
   int same = 0;
-  while((*str != '\0') || (*pStr != '\0')){
-    if(*str != *pStr){
+  while((*str != '\0') || (*pStr != '\0')){                //for two words to be equal none of them needs to finish before
+    if(*str != *pStr){                                     //if at the same index the letter is not the same then it's not equal
       break;
     }
     else{
-      if(*(str + 1) == '\0' && *(pStr + 1) == '\0'){
-	same = 1;
+      if(*(str + 1) == '\0' && *(pStr + 1) == '\0'){       //if the next character on both of the words is '\0' then we are at the last character
+	same = 1;                                          //meaning that we reached the end having the letters being equal
       }
     }
     str++;
@@ -50,6 +50,7 @@ int compareWord(char *str, char *pStr){
 }
 
 //counts the number of characters for each word
+//it will return the number of characters found before reaching to the delimiter or the end of the word
 int countLengthWord(char * str, char delim){
   int wordLength = 0;
   char* pStr = str; 
@@ -64,18 +65,18 @@ int countWords(char *str, char delim){
   numWords = 0;
   char *pStr;
   pStr = str;
-  if(*pStr == '\0'){
+  if(*pStr == '\0'){                                 //if the word is empty then return 0
     numWords = 0;
   }
-  else{
-    if(pStr[0] != delim){
+  else{                                            
+    if(pStr[0] != delim){                            //if the first character is not the delimiter, then there is a word there
       numWords++;
     }
-    while(*pStr != '\0'){
-      if(*pStr == delim){
+    while(*pStr != '\0'){                            //checking the word for the '\0' character
+      if(*pStr == delim){                            //if there is a delimiter and the next char is not one
 	if(*(pStr + 1) != delim){
-	  if(*(pStr + 1) != '\0'){
-	    numWords++;
+	  if(*(pStr + 1) != '\0'){                   //and if the next char is not the end of the word
+	    numWords++;                              //then that means there is a word there
 	  }
 	}
       }
@@ -85,6 +86,9 @@ int countWords(char *str, char delim){
   return numWords;
 }
 
+/*
+function to copy a word given a 
+ */
 char *copyWord(char *src, char *destination){
   destination = malloc(sizeof(char) * countCharacters(src) + 1);
   while(*src != '\0'){
