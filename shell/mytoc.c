@@ -87,15 +87,15 @@ int countWords(char *str, char delim){
 }
 
 /*
-function to copy a word given a 
+function to copy a char* into another char*
  */
 char *copyWord(char *src, char *destination){
-  destination = malloc(sizeof(char) * countCharacters(src) + 1);
-  while(*src != '\0'){
-    *destination = *src;
-    src++;
+  destination = malloc(sizeof(char) * countCharacters(src) + 1);   //it will assign the memory given the char*
+  while(*src != '\0'){                      //until we reach the end of the char*
+    *destination = *src;                    //copy the value into the destination
+    src++;                                  //increase both of the pointers
     destination++;
   }
-  *destination = '\0';
+  *destination = '\0';                      //add the '\0' char to the end of the char*
   return destination;
 }
