@@ -5,16 +5,13 @@
 #include "mytoc.h"
 #include "test.h"
 #include <errno.h>
-
-
-int isPipe = 0;
+#include <fcntl.h>
 
 int main(int argc, char **argv, char **envp){
   int size = 1024;
   int i = 0;
   char *str = (char *)malloc(size * sizeof(char));
   char delim = ' ';
-  char **vector;
   
   while(1){
     write(1, "$ ", 2);
@@ -25,19 +22,16 @@ int main(int argc, char **argv, char **envp){
     if(compareWord("\n", str) == 1){   //I have to fix this
       break;
     }
-    vector = mytoc(str, delim);
-    selectCommand(vector, envp, isPipe, str, delim);
-  }
-  
+    selectCommand(envp, argv, str, delim);
+  }  
   return 0;
 }
 
 /*
 Function will determine which of all the possible commands is the one entered
  */
-
-int selectCommand(char **vector, char **envp, int isPipe, char *str, char delim){
-
+int selectCommand(char **envp, char **argv, char *str, char delim){
+  char **vector = mytoc(str, delim);
   char *path;
   char **posPath;
   char *realPath;
@@ -54,21 +48,26 @@ int selectCommand(char **vector, char **envp, int isPipe, char *str, char delim)
     }
   }
   else if(lookForPipes(str) > 1){            //there are pipes that need to be considered
-    isPipe = 1;
+    determinePipes(str, envp, argv); 
     
-
-    
+  }
+  else if(lookForBackground(str) > 1){
+    //    determineBackground(str, envp, argv);
   }
   else{
     if(access(vector[0], F_OK) == 0){                    //access function will check if the path exists, return 0 if it does
       pid = saferFork();                           //calling saferFork, from the examples
-      if(pid == 0){                                //if it returs no error
+      if(pid < 0){
+	printf("Error\n");
+      }
+      else if(pid == 0){                                //if it returs no error
 	execve(vector[0], vector, envp);                 //call execve, in case there was given a correct path
+	return 1;
       }
       else{                                        //in case it is still executing the child process
 	wait(NULL);
       }
-      }
+    }
     path = lookForPath(envp);
     posPath = mytoc(path, ':');                    //tokenizing the given path
     while(*posPath){                               //traversing the possible paths
@@ -76,8 +75,12 @@ int selectCommand(char **vector, char **envp, int isPipe, char *str, char delim)
       realPath = concatenate(realPath, vector[0]);       //adding the given command by the user after '/'
       if(access(realPath, F_OK) == 0){             //access function will check if the new path exists
 	  pid = saferFork();
-	  if(pid == 0){
+	  if(pid < 0){
+	    printf("Error\n");
+	  }
+	  else if(pid == 0){
 	    execve(realPath, vector, envp);
+	    return 1;
 	  }
 	  else{
 	    wait(NULL);
@@ -89,7 +92,6 @@ int selectCommand(char **vector, char **envp, int isPipe, char *str, char delim)
   }
   return 0;
 }
-
 
 /*
 Look for PATH
@@ -120,32 +122,46 @@ int cdCommand(char **vector){
 }
 
 /*
-In case the entered command words as a pipe
+In case the entered command words as a pipe, used as template the demo provided
  */
-char **determinePipes(char *str){
-  int fileD[2];
+int determinePipes(char *str,char** envp, char **argv){  
+  int fd[2];                                //file descriptors
+  char delim = ' ';
   pid_t pid = saferFork();
   char **vector = mytoc(str, '|');
-  int numWords = countWords(str, '|');
-  int stdIn2 = dup (0);
-  int stdOut2 = dup(1);
-  fileD[0] = 0;
-  fileD[1] = 1;
-  for(int i = 0; i < numWords - 1; i++){
-    pipe(fileD);
-    
-    if(pid == 0){
-      
-    
-      close(fileD[0]);                          //Closing the input side of the pipe
-      dup2(fileD[1], 0);
-    
+  if(pid < 0){
+    printf("Error\n");
+  }
+  else if(pid == 0){
+    pipe(fd);
+    pid_t pid = saferFork();
+    if(pid < 0){
+      printf("Error\n");
     }
-    else{
-      close(fileD[1]);
+    else if(pid == 0){                              //child
+      close(1);                                     //closing output
+      dup(fd[1]);                                   //pipe for writing
+      close(fd[0]);                                 
+      close(fd[1]);
+      selectCommand(envp, argv, vector[0], delim);  //executing using first command
+      exit(2);                                      
+    }
+    else{                                           //parent
+      wait(NULL);                                   //wait for child if it hasn't finished yet
+      close(0);                                     //closing input
+      dup(fd[0]);                                   //pipe for reading
+      close(fd[0]);
+      close(fd[1]);
+      selectCommand(envp, argv, vector[1], delim);  //executing using second command
+      exit(2);
     }
   }
-  return 0;
+  else{
+    wait(NULL);                                     //wait if necessary
+    return 0;
+  }
+  close(0);                                         //closing input 
+  close(1);                                         //closing output
 }
 
 /*
@@ -155,6 +171,12 @@ int lookForPipes(char *str){
   return (countWords(str, '|'));
 }
 
+/*
+Look for pipe passing the command as parameter and looking for '|' char
+ */
+int lookForBackground(char *str){
+  return (countWords(str, '&'));
+}
 
 /*
 concatenate function, will create a new char * adding the content 

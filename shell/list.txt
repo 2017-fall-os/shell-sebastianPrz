@@ -1,0 +1,11 @@
+list.txt
+Makefile
+mytoc.c
+mytoc.h
+mytoc.o
+README.md
+test
+test.c
+test.h
+test.o
+testShell.sh
